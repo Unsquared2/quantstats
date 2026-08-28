@@ -13,6 +13,11 @@ dependencies = [
   "scipy>=1.15",
   "seaborn>=0.13",
   "tabulate>=0.9",
+  # By name, with no URL. `tool.uv.sources` reaches consumers, so pointing at a
+  # git ref here collides with whatever ref they already pin -- which is how
+  # this dependency is always supplied, since it is not on an index. The dev
+  # group below carries the URL for this repo's own resolution; dependency
+  # groups are not installed by consumers.
   "weightcraft",
 ]
 
@@ -21,6 +26,7 @@ Repository = "https://github.com/Unsquared2/quantstats"
 
 [dependency-groups]
 dev = [
+  "weightcraft @ git+https://github.com/Unsquared2/weightcraft.git",
   # The fork is asserted against the implementation it was taken from.
   # Not the `[plotting]` extra: it pins matplotlib 3.9.2, whose
   # `Path.__deepcopy__` recurses forever on 3.14. This package brings its own
@@ -30,9 +36,6 @@ dev = [
   "pytest-cov>=7.0",
   "ruff>=0.14.1",
 ]
-
-[tool.uv.sources]
-weightcraft = { git = "https://github.com/Unsquared2/weightcraft.git" }
 
 [build-system]
 requires = ["hatchling"]

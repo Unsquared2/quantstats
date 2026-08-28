@@ -594,6 +594,7 @@ dev = [
     { name = "pytest" },
     { name = "pytest-cov" },
     { name = "ruff" },
+    { name = "weightcraft" },
 ]
 
 [package.metadata]
@@ -604,7 +605,7 @@ requires-dist = [
     { name = "scipy", specifier = ">=1.15" },
     { name = "seaborn", specifier = ">=0.13" },
     { name = "tabulate", specifier = ">=0.9" },
-    { name = "weightcraft", git = "https://github.com/Unsquared2/weightcraft.git" },
+    { name = "weightcraft" },
 ]
 
 [package.metadata.requires-dev]
@@ -613,6 +614,7 @@ dev = [
     { name = "pytest", specifier = ">=8.4" },
     { name = "pytest-cov", specifier = ">=7.0" },
     { name = "ruff", specifier = ">=0.14.1" },
+    { name = "weightcraft", git = "https://github.com/Unsquared2/weightcraft.git" },
 ]
 
 [[package]]
