@@ -1,0 +1,69 @@
+[project]
+name = "quantstats"
+version = "0.1.0"
+description = "Portfolio tearsheets: metrics, drawdowns, exposure and liquidity, rendered to one HTML page."
+readme = "README.md"
+requires-python = ">=3.14"
+license = "LicenseRef-Proprietary"
+authors = [{ name = "Mark Aron Szulyovszky" }]
+dependencies = [
+  "matplotlib>=3.10",
+  "numpy>=2.3",
+  "pandas>=2.3",
+  "scipy>=1.15",
+  "seaborn>=0.13",
+  "tabulate>=0.9",
+  "weightcraft",
+]
+
+[project.urls]
+Repository = "https://github.com/Unsquared2/quantstats"
+
+[dependency-groups]
+dev = [
+  # The fork is asserted against the implementation it was taken from.
+  # Not the `[plotting]` extra: it pins matplotlib 3.9.2, whose
+  # `Path.__deepcopy__` recurses forever on 3.14. This package brings its own
+  # matplotlib, seaborn and tabulate, which is all that extra supplies.
+  "finml-utils>=5",
+  "pytest>=8.4",
+  "pytest-cov>=7.0",
+  "ruff>=0.14.1",
+]
+
+[tool.uv.sources]
+weightcraft = { git = "https://github.com/Unsquared2/weightcraft.git" }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/quantstats"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = ["--strict-markers", "--strict-config"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py314"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF", "PD"]
+ignore = [
+  # The vendored plotting layer keeps its upstream signatures: long positional
+  # keyword lists, and `**kwargs` passed through to matplotlib.
+  "B008",
+  "PLR0913",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"src/quantstats/plotting/*" = [
+  "PD901",
+  # `.stack()` here is long-form for one histogram, not a reshape by key.
+  "PD013",
+]
+# `.nunique() > 1` asks whether the frame carries more than one strategy, which
+# is not the constant-column check the rule is aimed at.
+"src/quantstats/reports.py" = ["PD101"]

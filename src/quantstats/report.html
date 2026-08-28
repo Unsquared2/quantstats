@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, shrink-to-fit=no"
+    />
+    <title>{{site_title}}</title>
+    <meta name="robots" content="noindex, nofollow" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+          -webkit-font-smoothing: antialiased;
+          -moz-osx-font-smoothing: grayscale;
+          margin: 30px;
+          background: {{background_color}};
+          color: {{text_color}};
+      }
+
+      body,
+      p,
+      table,
+      td,
+      th {
+          font: 13px/1.4 Roboto, Arial, sans-serif
+      }
+
+
+      header {
+          display:flex;
+          flex-direction: row;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 5px;
+          width: 100%;
+      }
+
+
+      .container {
+          max-width: 960px;
+          margin: auto
+      }
+
+      img,
+      svg {
+          width: 100%
+      }
+
+      h1,
+      h2,
+      h3,
+      h4 {
+          font-weight: 400;
+          margin: 0
+      }
+
+      h1{
+          display:flex;
+          flex-direction: row;
+          justify-content: space-between;
+      }
+
+      h4 dt {
+          display: inline;
+          margin-right: 5px;
+      }
+
+      h3 {
+          margin-bottom: 10px;
+          font-weight: 700
+      }
+
+      h4 {
+          color: grey
+      }
+
+      h4 a {
+          color: #09c;
+          text-decoration: none
+      }
+
+      h4 a:hover {
+          color: #069;
+          text-decoration: underline
+      }
+
+      hr {
+          margin: 25px 0 40px;
+          height: 0;
+          border: 0;
+          border-top: 1px solid #ccc
+      }
+
+      #left {
+          width: 620px;
+          margin-right: 18px;
+          margin-top: -1.2rem;
+          float: left;
+      }
+
+      #right {
+          width: 320px;
+          float: right;
+      }
+
+      #left svg {
+          margin: -1.5rem 0
+      }
+
+      #monthly_heatmap {
+          overflow: hidden
+      }
+
+      #monthly_heatmap svg {
+          margin: -1.5rem 0
+      }
+
+      #component_level_heatmap {
+          overflow: hidden
+      }
+
+      #component_level_heatmap svg {
+          margin: -1.5rem 0
+      }
+
+      table {
+          margin: 0 0 40px;
+          border: 0;
+          border-spacing: 0;
+          width: 100%
+      }
+
+      table td,
+      table th {
+          text-align: right;
+          padding: 4px 5px 3px 5px
+      }
+
+      table th {
+          text-align: right;
+          padding: 6px 5px 5px 5px
+      }
+
+      table td:first-of-type,
+      table th:first-of-type {
+          text-align: left;
+          padding-left: 2px
+      }
+
+      table td:last-of-type,
+      table th:last-of-type {
+          text-align: right;
+          padding-right: 2px
+      }
+
+      td hr {
+          margin: 5px 0
+      }
+
+      #overlayRect{
+          opacity:{{init_overlay_opacity}};
+      }
+
+      #metrics table td:last-child:not(:has(hr)) {
+          font-weight: bold;
+          background-color: {{init_table_row_overlay_color}};
+          color: {{init_table_row_font_color}};
+      }
+
+      #metrics table td:first-child {
+          font-weight: bold;
+      }
+
+      table th {
+          font-weight: 400
+      }
+
+      table thead th {
+          font-weight: 700;
+          background: {{table_header_color}};
+      }
+
+      #eoy table td:after {
+          content: "%"
+      }
+
+      #eoy table td:first-of-type:after,
+      #eoy table td:last-of-type:after,
+      #eoy table td:nth-of-type(4):after {
+          content: ""
+      }
+
+      #eoy table th {
+          text-align: right
+      }
+
+      #eoy table th:first-of-type {
+          text-align: left
+      }
+
+      #eoy table td:after {
+          content: "%"
+      }
+
+      #eoy table td:first-of-type:after,
+      #eoy table td:last-of-type:after {
+          content: ""
+      }
+
+      #ddinfo table td:nth-of-type(3):after {
+          content: "%"
+      }
+
+      #ddinfo table th {
+          text-align: right
+      }
+
+      #ddinfo table td:first-of-type,
+      #ddinfo table td:nth-of-type(2),
+      #ddinfo table th:first-of-type,
+      #ddinfo table th:nth-of-type(2) {
+          text-align: left
+      }
+
+      #ddinfo table td:nth-of-type(3):after {
+          content: "%"
+      }
+
+
+      @media print {
+          hr {
+              margin: 25px 0
+          }
+
+          body {
+              margin: 0
+          }
+
+          .container {
+              max-width: 100%;
+              margin: 0
+          }
+
+          #left {
+              width: 65%;
+              margin: 0
+          }
+
+          /* #left svg {
+              margin: 0 0 -10%
+          } */
+
+          #left svg:first-of-type {
+              margin-top: -12%
+          }
+
+          #right {
+              margin: 0;
+              width: 35%
+          }
+      }
+    </style>
+  </head>
+
+  <body onload="save()">
+    <div class="container">
+      <header>        <p style="color: darkgrey">{{company_name_address}}</p>
+      </header>
+      <h1>
+        <div>{{title}}</div>
+        <button
+          id="toggleButton"
+          style="margin-top: 5px; display:{{button_display}}; height:fit-content;"
+        >
+          Toggle Overlay
+        </button>
+      </h1>
+      <h4>
+        <dt>{{date_range}}</dt>
+        {{metadata}} <br />
+      </h4>
+      <script>
+        document.getElementById('toggleButton').addEventListener('click', function() {
+            const overlays = document.querySelectorAll('[id="overlayRect"]');
+            let currentOpacity;
+            overlays.forEach(function(overlay) {
+                currentOpacity = overlay.style.opacity || {{init_overlay_opacity}};
+                overlay.style.opacity = currentOpacity > 0 ? 0 : {{init_overlay_opacity}} == 0 ? 1.0 : {{init_overlay_opacity}};
+            });
+
+            const tableRows = document.querySelectorAll('#metrics table td:last-child:not(:has(hr))');
+            tableRows.forEach(function(row) {
+                currentOpacity = currentOpacity || {{init_overlay_opacity}};
+                row.style.backgroundColor = currentOpacity > 0 ? '#F0F8FF': {{init_overlay_opacity}} == 0 ? 'black':'{{init_table_row_overlay_color}}';
+                row.style.color = currentOpacity > 0 ? '#003366': {{init_overlay_opacity}} == 0 ?'black':'{{init_table_row_font_color}}';
+            });
+        });
+      </script>
+      <hr />
+
+      <div id="left">
+        <div id="cumulative_returns">{{cumulative_returns}}</div>
+        <div id="dd_plot">{{dd_plot}}</div>
+        <div id="vol_returns">{{vol_returns}}</div>
+        <div id="eoy_returns">{{eoy_returns}}</div>
+        <div id="rolling_net_exposure">{{rolling_net_exposure}}</div>
+        <div id="rolling_gross_exposure">{{rolling_gross_exposure}}</div>
+        <div id="liquidity_tilt">{{liquidity_tilt}}</div>
+        <div id="monthly_dist">{{monthly_dist}}</div>
+        <div id="rolling_beta">{{rolling_beta}}</div>
+        <div id="rolling_vol">{{rolling_vol}}</div>
+        <div id="rolling_sharpe">{{rolling_sharpe}}</div>
+        <div id="monthly_heatmap">{{monthly_heatmap}}</div>
+      </div>
+
+      <div id="right">
+        <h3 style="margin-bottom: 1px">Key Performance Metrics</h3>
+        <p style="margin-top: 0px">Benchmark: {{benchmark_name}}</p>
+        <div id="metrics">{{metrics}}</div>
+        <div id="eoy">{{eoy_title}} {{eoy_table}}</div>
+
+        <div id="ddinfo">
+          <h3>Worst 10 Drawdowns</h3>
+          {{dd_info}}
+        </div>
+      </div>
+    </div>
+    <style>
+      * {
+        white-space: auto !important;
+      }
+    </style>
+  </body>
+</html>
