@@ -40,6 +40,18 @@ def _weights_and_liquidity(
     return weights, liquidity
 
 
+def _components(index: pd.DatetimeIndex) -> dict[str, pd.DataFrame]:
+    """Three sub-strategies whose weights sum to roughly one combined book."""
+    rng = np.random.default_rng(3)
+    tickers = [f"T{i}" for i in range(20)]
+    components = {}
+    for name in ("alpha", "beta", "gamma"):
+        raw = rng.normal(size=(len(index), 20))
+        scaled = raw / (np.abs(raw).sum(axis=1, keepdims=True) * 3)
+        components[name] = pd.DataFrame(scaled, index=index, columns=tickers)
+    return components
+
+
 @pytest.fixture(scope="module")
 def returns() -> pd.Series:
     return _returns()
@@ -50,7 +62,12 @@ def benchmark(returns: pd.Series) -> pd.Series:
     return _benchmark(returns)
 
 
-def sample_report(path: str) -> str:
+def sample_report(
+    path: str,
+    *,
+    with_components: bool = False,
+    dark: bool = False,
+) -> str:
     """Render one report to `path`. Called by the tests and by CI's own job."""
     from quantstats.reports import html
 
@@ -64,5 +81,7 @@ def sample_report(path: str) -> str:
         title="Sample",
         subtitle="synthetic",
         periods_per_year=365,
+        components=_components(series.index) if with_components else None,
+        background_dark=dark,
     ).write_html(path)
     return path

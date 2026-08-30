@@ -27,6 +27,7 @@ from .plotting.wrappers import (
     plot_rolling_exposure,
     plot_rolling_sharpe,
     plot_rolling_volatility,
+    plot_turnover,
     plot_yearly_returns,
 )
 
@@ -77,8 +78,13 @@ def html(
     template_path=None,
     match_dates: bool = True,
     background_dark: bool = False,
+    components: dict[str, pd.DataFrame] | None = None,
     **kwargs,
 ) -> HTMLReport:
+    """`components` maps a sub-strategy's display name to its own `weights`
+    (same zero-not-NaN convention). Given, the turnover chart is drawn --
+    it is otherwise skipped -- and gross exposure stacks by sub-strategy
+    instead of drawing the combined book's single line."""
     pd.options.mode.copy_on_write = False
     if match_dates:
         returns = returns.dropna()
@@ -243,6 +249,7 @@ def html(
         ylabel=False,
         cumulative=compounded,
         shade_periods=worst_drawdowns,
+        dark=background_dark,
     )
     tpl = tpl.replace("{{cumulative_returns}}", _embed_figure(figfile, figfmt))
 
@@ -255,6 +262,7 @@ def html(
         title=None,
         savefig={"fname": figfile, "format": figfmt},
         ylabel=False,
+        dark=background_dark,
     )
     tpl = tpl.replace("{{dd_plot}}", _embed_figure(figfile, figfmt))
 
@@ -271,8 +279,38 @@ def html(
             savefig={"fname": figfile, "format": figfmt},
             ylabel=False,
             cumulative=compounded,
+            dark=background_dark,
         )
         tpl = tpl.replace("{{vol_returns}}", _embed_figure(figfile, figfmt))
+
+    if components:
+        figfile = _utils._file_stream()
+        plot_turnover(
+            components=components,
+            smooth="W",
+            grayscale=grayscale,
+            figsize=(8, 4),
+            subtitle=False,
+            savefig={"fname": figfile, "format": figfmt},
+            ylabel=False,
+            dark=background_dark,
+        )
+        tpl = tpl.replace("{{stacked_turnover_weekly}}", _embed_figure(figfile, figfmt))
+
+        figfile = _utils._file_stream()
+        plot_turnover(
+            components=components,
+            smooth="3M",
+            grayscale=grayscale,
+            figsize=(8, 4),
+            subtitle=False,
+            savefig={"fname": figfile, "format": figfmt},
+            ylabel=False,
+            dark=background_dark,
+        )
+        tpl = tpl.replace(
+            "{{stacked_turnover_quarterly}}", _embed_figure(figfile, figfmt)
+        )
 
     if weights is not None:
         figfile = _utils._file_stream()
@@ -287,6 +325,7 @@ def html(
             reference_line=0.0,
             period=1,
             period_label="1 Day",
+            dark=background_dark,
         )
         tpl = tpl.replace("{{rolling_net_exposure}}", _embed_figure(figfile, figfmt))
 
@@ -302,6 +341,8 @@ def html(
             reference_line=0.0,
             period=1,
             period_label="1 Day",
+            components=components,
+            dark=background_dark,
         )
         tpl = tpl.replace("{{rolling_gross_exposure}}", _embed_figure(figfile, figfmt))
 
@@ -314,6 +355,7 @@ def html(
                 figsize=(8, 4),
                 subtitle=False,
                 savefig={"fname": figfile, "format": figfmt},
+                dark=background_dark,
             )
             tpl = tpl.replace("{{liquidity_tilt}}", _embed_figure(figfile, figfmt))
 
@@ -327,6 +369,7 @@ def html(
         savefig={"fname": figfile, "format": figfmt},
         ylabel=False,
         compounded=compounded,
+        dark=background_dark,
     )
     tpl = tpl.replace("{{eoy_returns}}", _embed_figure(figfile, figfmt))
 
@@ -340,6 +383,7 @@ def html(
         savefig={"fname": figfile, "format": figfmt},
         ylabel=False,
         compounded=compounded,
+        dark=background_dark,
     )
     tpl = tpl.replace("{{monthly_dist}}", _embed_figure(figfile, figfmt))
     tpl = tpl.replace("{{monthly_dist_oos}}", "")
@@ -356,6 +400,7 @@ def html(
             window2=win_year,
             savefig={"fname": figfile, "format": figfmt},
             ylabel=False,
+            dark=background_dark,
         )
         tpl = tpl.replace("{{rolling_beta}}", _embed_figure(figfile, figfmt))
 
@@ -370,6 +415,7 @@ def html(
         ylabel=False,
         period=win_half_year,
         periods_per_year=win_year,
+        dark=background_dark,
     )
     tpl = tpl.replace("{{rolling_vol}}", _embed_figure(figfile, figfmt))
 
@@ -384,6 +430,7 @@ def html(
         ylabel=False,
         period=win_half_year,
         periods_per_year=win_year,
+        dark=background_dark,
     )
     tpl = tpl.replace("{{rolling_sharpe}}", _embed_figure(figfile, figfmt))
 
@@ -399,6 +446,7 @@ def html(
         ylabel=False,
         compounded=compounded,
         active=active,
+        dark=background_dark,
     )
     tpl = tpl.replace("{{monthly_heatmap}}", _embed_figure(figfile, figfmt))
 

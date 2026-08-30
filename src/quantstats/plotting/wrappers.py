@@ -30,6 +30,7 @@ def plot_returns(
     subtitle: bool = True,
     savefig: dict | None = None,
     shade_periods: list[tuple[object, object]] | None = None,
+    dark: bool = False,
 ):
     title = "Cumulative Returns" if compound else "Returns"
     if benchmark is not None:
@@ -55,6 +56,7 @@ def plot_returns(
         grayscale=grayscale,
         subtitle=subtitle,
         savefig=savefig,
+        dark=dark,
     )
 
 
@@ -71,6 +73,7 @@ def plot_yearly_returns(
     subtitle: bool = True,
     compounded: bool = True,
     savefig: dict | None = None,
+    dark: bool = False,
 ) -> Figure:
     title = "EOY Returns"
     if benchmark is not None:
@@ -98,6 +101,7 @@ def plot_yearly_returns(
         ylabel=ylabel,
         subtitle=subtitle,
         savefig=savefig,
+        dark=dark,
     )
 
 
@@ -111,6 +115,7 @@ def plot_histogram(
     subtitle: bool = True,
     compounded: bool = True,
     savefig: dict | None = None,
+    dark: bool = False,
 ) -> Figure:
     if resample == "W":
         title = "Weekly "
@@ -134,6 +139,7 @@ def plot_histogram(
         subtitle=subtitle,
         compounded=compounded,
         savefig=savefig,
+        dark=dark,
     )
 
 
@@ -149,6 +155,7 @@ def drawdown(
     subtitle: bool = True,
     title: str | None = "Underwater Plot",
     savefig: dict | None = None,
+    dark: bool = False,
 ) -> Figure:
     dd = _stats.to_drawdown_series(returns)
 
@@ -172,6 +179,7 @@ def drawdown(
         grayscale=grayscale,
         subtitle=subtitle,
         savefig=savefig,
+        dark=dark,
     )
 
 
@@ -188,6 +196,7 @@ def plot_rolling_beta(
     ylabel: bool = True,
     subtitle: bool = True,
     savefig: dict | None = None,
+    dark: bool = False,
 ) -> Figure:
     return _core.plot_rolling_beta(
         returns,
@@ -203,7 +212,16 @@ def plot_rolling_beta(
         ylabel=ylabel,
         subtitle=subtitle,
         savefig=savefig,
+        dark=dark,
     )
+
+
+def _component_gross(weights: pd.DataFrame) -> pd.Series:
+    return weights.abs().sum(axis="columns")
+
+
+def _component_turnover(weights: pd.DataFrame) -> pd.Series:
+    return weights.diff(1).abs().sum(axis="columns")
 
 
 def plot_rolling_exposure(
@@ -218,13 +236,33 @@ def plot_rolling_exposure(
     savefig: dict | None = None,
     net_or_gross: Literal["net", "gross"] = "net",
     reference_line: float = 0.0,
+    components: dict[str, pd.DataFrame] | None = None,
+    dark: bool = False,
 ) -> Figure:
     assert net_or_gross in ["net", "gross"], (
         "net_or_gross must be either 'net' or 'gross'"
     )
     if net_or_gross == "gross":
-        weights = weights.abs()
         ylabel = "Rolling Gross Exposure"
+        # Each sub-strategy's own gross, stacked, rather than the combined
+        # book's -- a component can be added or retired without redrawing.
+        if components:
+            title = f"{ylabel} ({period_label})"
+            stacked = {
+                name: _component_gross(component).rolling(period).mean()
+                for name, component in components.items()
+            }
+            return _core.plot_stacked(
+                stacked,
+                title=title,
+                ylabel=ylabel,
+                grayscale=grayscale,
+                figsize=figsize,
+                subtitle=subtitle,
+                savefig=savefig,
+                dark=dark,
+            )
+        weights = weights.abs()
     else:
         ylabel = "Rolling Net Exposure"
 
@@ -242,6 +280,52 @@ def plot_rolling_exposure(
         subtitle=subtitle,
         savefig=savefig,
         reference_line=reference_line,
+        dark=dark,
+    )
+
+
+def plot_turnover(
+    components: dict[str, pd.DataFrame],
+    smooth: Literal["W", "3M"] = "W",
+    grayscale: bool = False,
+    figsize: tuple[int, int] = (10, 4),
+    ylabel: str = "Turnover",
+    subtitle: bool = True,
+    savefig: dict | None = None,
+    dark: bool = False,
+) -> Figure:
+    """Stacked turnover by sub-strategy: each area is that book's own share.
+
+    `smooth="W"` resamples daily turnover to a weekly mean; `smooth="3M"`
+    takes a trailing 90-day mean instead, still drawn at one point a week --
+    raw daily turnover is too jagged to read once several areas are stacked.
+    """
+    if smooth == "W":
+        title = "Turnover (Weekly Smoothed)"
+        stacked = {
+            name: _component_turnover(frame).resample("W").mean()
+            for name, frame in components.items()
+        }
+    else:
+        title = "Turnover (3-Month Smoothed)"
+        stacked = {
+            name: _component_turnover(frame)
+            .rolling("90D", min_periods=1)
+            .mean()
+            .resample("W")
+            .last()
+            for name, frame in components.items()
+        }
+
+    return _core.plot_stacked(
+        stacked,
+        title=title,
+        ylabel=ylabel,
+        grayscale=grayscale,
+        figsize=figsize,
+        subtitle=subtitle,
+        savefig=savefig,
+        dark=dark,
     )
 
 
@@ -253,6 +337,7 @@ def plot_liquidity_tilt(
     figsize: tuple[int, int] = (10, 3),
     subtitle: bool = True,
     savefig: dict | None = None,
+    dark: bool = False,
 ) -> Figure:
     """Where the book's gross sits in its own cross-section's liquidity ranking.
 
@@ -272,6 +357,7 @@ def plot_liquidity_tilt(
         subtitle=subtitle,
         savefig=savefig,
         reference_line=0.5,
+        dark=dark,
     )
 
 
@@ -287,6 +373,7 @@ def plot_rolling_volatility(
     ylabel: str = "Volatility",
     subtitle: bool = True,
     savefig: dict | None = None,
+    dark: bool = False,
 ) -> Figure:
     returns = _stats.rolling_volatility(returns, period, periods_per_year)
 
@@ -305,6 +392,7 @@ def plot_rolling_volatility(
         figsize=figsize,
         subtitle=subtitle,
         savefig=savefig,
+        dark=dark,
     )
 
 
@@ -321,6 +409,7 @@ def plot_rolling_sharpe(
     ylabel: str = "Sharpe",
     subtitle: bool = True,
     savefig: dict | None = None,
+    dark: bool = False,
 ) -> Figure:
     returns = _stats.rolling_sharpe(
         returns,
@@ -345,6 +434,7 @@ def plot_rolling_sharpe(
         figsize=figsize,
         subtitle=subtitle,
         savefig=savefig,
+        dark=dark,
     )
 
 
@@ -362,6 +452,7 @@ def plot_monthly_heatmap(
     ylabel: bool = True,
     savefig: dict | None = None,
     active: bool = False,
+    dark: bool = False,
 ) -> Figure:
     # colors, ls, alpha = _core._get_colors(grayscale)
     cmap = "gray" if grayscale else "RdYlGn"
@@ -385,8 +476,8 @@ def plot_monthly_heatmap(
     ax.spines["bottom"].set_visible(False)
     ax.spines["left"].set_visible(False)
 
-    fig.set_facecolor("white")
-    ax.set_facecolor("white")
+    fig.set_facecolor(_core._bg(dark))
+    ax.set_facecolor(_core._bg(dark))
 
     # _sns.set(font_scale=.9)
     if active and benchmark is not None:
@@ -395,7 +486,7 @@ def plot_monthly_heatmap(
             fontsize=14,
             y=0.995,
             fontweight="bold",
-            color="black",
+            color=_core._ink(dark),
         )
         benchmark = (
             _stats.monthly_returns(benchmark, eoy=eoy, compounded=compounded) * 100
@@ -421,7 +512,7 @@ def plot_monthly_heatmap(
             fontsize=14,
             y=0.995,
             fontweight="bold",
-            color="black",
+            color=_core._ink(dark),
         )
         ax = sns.heatmap(
             returns,
@@ -440,7 +531,7 @@ def plot_monthly_heatmap(
 
     # align plot to match other
     if ylabel:
-        ax.set_ylabel("Years", fontweight="bold", fontsize=12)
+        ax.set_ylabel("Years", fontweight="bold", fontsize=12, color=_core._ink(dark))
         ax.yaxis.set_label_coords(-0.1, 0.5)
 
     ax.tick_params(colors="#808080")
