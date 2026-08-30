@@ -38,12 +38,11 @@ weight forever, so gross exposure climbs with the length of the sample instead
 of staying at the book's leverage.
 
 `components` carries the same convention, one frame per sub-strategy. Passing
-it draws two additional charts -- turnover stacked by sub-strategy, smoothed
-weekly and again over a trailing 3 months -- right after "Cumulative Returns
-vs Benchmark (Volatility Matched)", and switches the gross exposure chart from
-the combined book's single line to a stack of each sub-strategy's own gross.
-Omit it and both charts behave exactly as before: no turnover chart, gross
-exposure as one line.
+it draws an additional chart -- turnover stacked by sub-strategy, smoothed
+weekly -- right after "Cumulative Returns vs Benchmark (Volatility Matched)",
+and switches the gross exposure chart from the combined book's single line to
+a stack of each sub-strategy's own gross. Omit it and both charts behave
+exactly as before: no turnover chart, gross exposure as one line.
 
 ## What it does differently
 
