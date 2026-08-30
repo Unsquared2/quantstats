@@ -67,6 +67,7 @@ def sample_report(
     *,
     with_components: bool = False,
     dark: bool = False,
+    with_benchmark: bool = True,
 ) -> str:
     """Render one report to `path`. Called by the tests and by CI's own job."""
     from quantstats.reports import html
@@ -75,7 +76,7 @@ def sample_report(
     weights, liquidity = _weights_and_liquidity(series.index)
     html(
         returns=series,
-        benchmark=_benchmark(series),
+        benchmark=_benchmark(series) if with_benchmark else None,
         weights=weights,
         liquidity=liquidity,
         title="Sample",

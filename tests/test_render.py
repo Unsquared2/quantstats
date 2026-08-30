@@ -74,6 +74,25 @@ def test_a_dark_report_renders_with_no_leftover_placeholder(tmp_path: Path):
     assert "#141b2cff" in page
 
 
+def test_a_report_renders_with_no_benchmark_at_all(tmp_path: Path):
+    """`benchmark=None` is a documented call shape (ensembler has none) --
+    every chart and metric that only makes sense against a benchmark must
+    drop out cleanly rather than crash on `None.name`."""
+    page = Path(
+        sample_report(
+            str(tmp_path / "tearsheet.html"),
+            with_components=True,
+            with_benchmark=False,
+        )
+    ).read_text()
+    assert "{{" not in page
+    rendered = set(re.findall(r'<div id="([^"]+)"><\?xml', page))
+    assert "vol_returns" not in rendered
+    assert "rolling_beta" not in rendered
+    assert "stacked_turnover_weekly" in rendered
+    assert "rolling_gross_exposure" in rendered
+
+
 def test_the_report_carries_the_exposure_and_liquidity_rows(tmp_path: Path):
     page = Path(sample_report(str(tmp_path / "tearsheet.html"))).read_text()
     for row in (
