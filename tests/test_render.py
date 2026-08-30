@@ -43,6 +43,37 @@ def test_no_template_placeholder_survives(tmp_path: Path):
     assert "{{" not in page
 
 
+def test_turnover_is_skipped_without_components(tmp_path: Path):
+    """Optional: absent `components`, the two turnover charts render nothing."""
+    page = Path(sample_report(str(tmp_path / "tearsheet.html"))).read_text()
+    assert '<div id="stacked_turnover_weekly"></div>' in page
+    assert '<div id="stacked_turnover_quarterly"></div>' in page
+
+
+def test_components_add_the_stacked_turnover_charts(tmp_path: Path):
+    page = Path(
+        sample_report(str(tmp_path / "tearsheet.html"), with_components=True)
+    ).read_text()
+    rendered = set(re.findall(r'<div id="([^"]+)"><\?xml', page))
+    assert rendered == CHARTS | {
+        "stacked_turnover_weekly",
+        "stacked_turnover_quarterly",
+    }
+    assert "{{" not in page
+    # Each sub-strategy's own name reaches the legend of a stacked chart.
+    assert "alpha" in page
+    assert "beta" in page
+    assert "gamma" in page
+
+
+def test_a_dark_report_renders_with_no_leftover_placeholder(tmp_path: Path):
+    page = Path(
+        sample_report(str(tmp_path / "tearsheet.html"), with_components=True, dark=True)
+    ).read_text()
+    assert "{{" not in page
+    assert "#141b2cff" in page
+
+
 def test_the_report_carries_the_exposure_and_liquidity_rows(tmp_path: Path):
     page = Path(sample_report(str(tmp_path / "tearsheet.html"))).read_text()
     for row in (

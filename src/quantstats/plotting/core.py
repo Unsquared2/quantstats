@@ -70,6 +70,40 @@ def _get_colors(grayscale):
     return colors, ls, alpha
 
 
+_DARK_BG = "#141b2cff"
+_DARK_INK = "#e8e8e8"
+_DARK_GRID = "#333c52"
+
+
+def _bg(dark: bool) -> str:
+    return _DARK_BG if dark else "white"
+
+
+def _ink(dark: bool) -> str:
+    return _DARK_INK if dark else "black"
+
+
+def _dark_rc(dark: bool) -> dict:
+    """rcParams overridden for the lifetime of one figure, not the process.
+
+    A caller renders both a light and a dark report from the same import, so
+    the theme cannot live in the module-level `sns.set_theme` call above --
+    only whatever is active when a given `plot_*` call opens its figure.
+    """
+    if not dark:
+        return {}
+    return {
+        "axes.facecolor": _DARK_BG,
+        "figure.facecolor": _DARK_BG,
+        "grid.color": _DARK_GRID,
+        "text.color": _DARK_INK,
+        "xtick.color": _DARK_INK,
+        "ytick.color": _DARK_INK,
+        "axes.edgecolor": _DARK_INK,
+        "axes.labelcolor": _DARK_INK,
+    }
+
+
 def plot_returns_bars(
     returns,
     benchmark=None,
@@ -86,6 +120,7 @@ def plot_returns_bars(
     ylabel=True,
     subtitle=True,
     savefig=None,
+    dark=False,
 ):
     if match_volatility and benchmark is None:
         raise ValueError("match_volatility requires passing of benchmark.")
@@ -106,7 +141,8 @@ def plot_returns_bars(
         df = df.resample(resample).apply(_stats.comp).resample(resample).last()
     # ---------------
 
-    fig, ax = plt.subplots(figsize=figsize)
+    with plt.rc_context(_dark_rc(dark)):
+        fig, ax = plt.subplots(figsize=figsize)
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
     ax.spines["bottom"].set_visible(False)
@@ -114,7 +150,7 @@ def plot_returns_bars(
 
     # use a more precise date string for the x axis locations in the toolbar
     if title:
-        fig.suptitle(title, y=0.94, fontweight="bold", fontsize=14, color="black")
+        fig.suptitle(title, y=0.94, fontweight="bold", fontsize=14, color=_ink(dark))
 
     if subtitle:
         ax.set_title(
@@ -130,8 +166,8 @@ def plot_returns_bars(
         colors = colors[1:]
     df.plot(kind="bar", ax=ax, color=colors)
 
-    fig.set_facecolor("white")
-    ax.set_facecolor("white")
+    fig.set_facecolor(_bg(dark))
+    ax.set_facecolor(_bg(dark))
 
     try:
         ax.set_xticklabels(df.index.year)
@@ -157,14 +193,14 @@ def plot_returns_bars(
             hlcolor = "gray"
         ax.axhline(hline, ls="--", lw=hlw, color=hlcolor, label=hllabel, zorder=2)
 
-    ax.axhline(0, ls="--", lw=1, color="#000000", zorder=2)
+    ax.axhline(0, ls="--", lw=1, color=_ink(dark), zorder=2)
 
     # if isinstance(benchmark, _pd.Series) or hline:
     ax.legend(fontsize=11)
 
     ax.set_xlabel("")
     if ylabel:
-        ax.set_ylabel("Returns", fontweight="bold", fontsize=12, color="black")
+        ax.set_ylabel("Returns", fontweight="bold", fontsize=12, color=_ink(dark))
         ax.yaxis.set_label_coords(-0.1, 0.5)
 
     ax.yaxis.set_major_formatter(_FuncFormatter(format_pct_axis))
@@ -212,6 +248,7 @@ def plot_timeseries(
     subtitle=True,
     savefig=None,
     marker: str | None = None,
+    dark=False,
 ):
     colors, ls, alpha = _get_colors(grayscale)
 
@@ -246,7 +283,8 @@ def plot_timeseries(
             benchmark = benchmark.last() if compound is True else benchmark.sum()
     # ---------------
 
-    fig, ax = plt.subplots(figsize=figsize)
+    with plt.rc_context(_dark_rc(dark)):
+        fig, ax = plt.subplots(figsize=figsize)
 
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
@@ -263,7 +301,7 @@ def plot_timeseries(
         )
 
     if title:
-        fig.suptitle(title, y=0.94, fontweight="bold", fontsize=14, color="black")
+        fig.suptitle(title, y=0.94, fontweight="bold", fontsize=14, color=_ink(dark))
 
     if subtitle:
         ax.set_title(
@@ -275,8 +313,8 @@ def plot_timeseries(
             color="gray",
         )
 
-    fig.set_facecolor("white")
-    ax.set_facecolor("white")
+    fig.set_facecolor(_bg(dark))
+    ax.set_facecolor(_bg(dark))
 
     if isinstance(benchmark, pd.Series):
         ax.plot(
@@ -308,7 +346,7 @@ def plot_timeseries(
         ax.axhline(hline, ls="--", lw=hlw, color=hlcolor, label=hllabel, zorder=2)
 
     ax.axhline(0, ls="-", lw=1, color="gray", zorder=1)
-    ax.axhline(0, ls="--", lw=1, color="white" if grayscale else "black", zorder=2)
+    ax.axhline(0, ls="--", lw=1, color="white" if grayscale else _ink(dark), zorder=2)
 
     # if isinstance(benchmark, _pd.Series) or hline is not None:
     ax.legend(fontsize=11)
@@ -318,11 +356,11 @@ def plot_timeseries(
         # ax.yaxis.set_major_formatter(_plt.FuncFormatter(
         #     lambda x, loc: "{:,}%".format(int(x*100))))
 
-    ax.set_xlabel(xlabel, fontweight="bold", fontsize=12, color="black")
+    ax.set_xlabel(xlabel, fontweight="bold", fontsize=12, color=_ink(dark))
     if isinstance(returns.index[0], int):
         ax.xticks(returns.index)
     if ylabel:
-        ax.set_ylabel(ylabel, fontweight="bold", fontsize=12, color="black")
+        ax.set_ylabel(ylabel, fontweight="bold", fontsize=12, color=_ink(dark))
     ax.yaxis.set_label_coords(-0.1, 0.5)
 
     if benchmark is None and len(pd.DataFrame(returns).columns) == 1:
@@ -358,6 +396,7 @@ def plot_histogram(
     subtitle=True,
     compounded=True,
     savefig=None,
+    dark=False,
 ):
     # colors = ['#348dc1', '#003366', 'red']
     # if grayscale:
@@ -380,14 +419,15 @@ def plot_histogram(
     )
 
     figsize = (0.995 * figsize[0], figsize[1])
-    fig, ax = plt.subplots(figsize=figsize)
+    with plt.rc_context(_dark_rc(dark)):
+        fig, ax = plt.subplots(figsize=figsize)
 
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
     ax.spines["bottom"].set_visible(False)
     ax.spines["left"].set_visible(False)
 
-    fig.suptitle(title, y=0.94, fontweight="bold", fontsize=14, color="black")
+    fig.suptitle(title, y=0.94, fontweight="bold", fontsize=14, color=_ink(dark))
 
     if subtitle:
         ax.set_title(
@@ -399,8 +439,8 @@ def plot_histogram(
             color="gray",
         )
 
-    fig.set_facecolor("white")
-    ax.set_facecolor("white")
+    fig.set_facecolor(_bg(dark))
+    ax.set_facecolor(_bg(dark))
 
     if isinstance(returns, pd.DataFrame) and len(returns.columns) == 1:
         returns = returns[returns.columns[0]]
@@ -434,7 +474,7 @@ def plot_histogram(
     else:
         combined_returns = returns.copy()
         if kde:
-            sns.kdeplot(data=combined_returns, color="black", ax=ax)
+            sns.kdeplot(data=combined_returns, color=_ink(dark), ax=ax)
         sns.histplot(
             data=combined_returns,
             bins=bins,
@@ -464,7 +504,7 @@ def plot_histogram(
     # ax.axvline(0, lw=1, color="#000000", zorder=2)
 
     ax.set_xlabel("")
-    ax.set_ylabel("Occurrences", fontweight="bold", fontsize=12, color="black")
+    ax.set_ylabel("Occurrences", fontweight="bold", fontsize=12, color=_ink(dark))
     ax.yaxis.set_label_coords(-0.1, 0.5)
 
     # fig.autofmt_xdate()
@@ -511,10 +551,12 @@ def plot_rolling_stats(
     subtitle: bool = True,
     savefig: bool | None = None,
     reference_line: float = 0.0,
+    dark: bool = False,
 ):
     colors, _, _ = _get_colors(grayscale)
 
-    fig, ax = plt.subplots(figsize=figsize)
+    with plt.rc_context(_dark_rc(dark)):
+        fig, ax = plt.subplots(figsize=figsize)
 
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
@@ -542,7 +584,7 @@ def plot_rolling_stats(
 
     # use a more precise date string for the x axis locations in the toolbar
     # ax.fmt_xdata = _mdates.DateFormatter('%Y-%m-%d')\
-    fig.suptitle(title, y=0.94, fontweight="bold", fontsize=14, color="black")
+    fig.suptitle(title, y=0.94, fontweight="bold", fontsize=14, color=_ink(dark))
 
     if subtitle:
         ax.set_title(
@@ -559,10 +601,10 @@ def plot_rolling_stats(
             hlcolor = "black"
         ax.axhline(hline, ls="--", lw=hlw, color=hlcolor, label=hllabel, zorder=2)
 
-    ax.axhline(reference_line, ls="--", lw=1, color="#000000", zorder=2)
+    ax.axhline(reference_line, ls="--", lw=1, color=_ink(dark), zorder=2)
 
     if ylabel:
-        ax.set_ylabel(ylabel, fontweight="bold", fontsize=12, color="black")
+        ax.set_ylabel(ylabel, fontweight="bold", fontsize=12, color=_ink(dark))
         ax.yaxis.set_label_coords(-0.1, 0.5)
 
     ax.yaxis.set_major_formatter(_FormatStrFormatter("%.2f"))
@@ -571,6 +613,76 @@ def plot_rolling_stats(
 
     if benchmark is None and len(pd.DataFrame(returns).columns) == 1:
         ax.get_legend().remove()
+
+    with contextlib.suppress(Exception):
+        plt.subplots_adjust(hspace=0, bottom=0, top=1)
+
+    with contextlib.suppress(Exception):
+        fig.tight_layout()
+
+    if savefig:
+        if isinstance(savefig, dict):
+            plt.savefig(**savefig)
+        else:
+            plt.savefig(savefig)
+    plt.close()
+    return fig
+
+
+def plot_stacked(
+    components: dict[str, pd.Series],
+    title: str = "",
+    ylabel: str = "",
+    figsize: tuple[int, int] = (10, 6),
+    grayscale: bool = False,
+    subtitle: bool = True,
+    savefig: dict | None = None,
+    percent: bool = True,
+    dark: bool = False,
+):
+    """Each series stacked on the ones before it; the top edge is their sum."""
+    colors, _, _ = _get_colors(grayscale)
+
+    with plt.rc_context(_dark_rc(dark)):
+        fig, ax = plt.subplots(figsize=figsize)
+
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    ax.spines["bottom"].set_visible(False)
+    ax.spines["left"].set_visible(False)
+
+    frame = pd.DataFrame(components).sort_index().fillna(0.0)
+
+    fig.suptitle(title, y=0.94, fontweight="bold", fontsize=14, color=_ink(dark))
+    if subtitle:
+        ax.set_title(
+            "{} - {}           \n".format(
+                frame.index.date[:1][0].strftime("%e %b '%y"),
+                frame.index.date[-1:][0].strftime("%e %b '%y"),
+            ),
+            fontsize=12,
+            color="gray",
+        )
+
+    palette = (colors * (len(frame.columns) // len(colors) + 1))[: len(frame.columns)]
+    ax.stackplot(
+        frame.index,
+        *[frame[column] for column in frame.columns],
+        labels=frame.columns,
+        colors=palette,
+        alpha=0.85,
+    )
+
+    fig.autofmt_xdate()
+
+    if percent:
+        ax.yaxis.set_major_formatter(_FuncFormatter(format_pct_axis))
+
+    if ylabel:
+        ax.set_ylabel(ylabel, fontweight="bold", fontsize=12, color=_ink(dark))
+        ax.yaxis.set_label_coords(-0.1, 0.5)
+
+    ax.legend(fontsize=9, ncol=min(len(frame.columns), 4), loc="upper left")
 
     with contextlib.suppress(Exception):
         plt.subplots_adjust(hspace=0, bottom=0, top=1)
@@ -602,17 +714,19 @@ def plot_rolling_beta(
     ylabel=True,
     subtitle=True,
     savefig=None,
+    dark=False,
 ):
     colors, _, _ = _get_colors(grayscale)
 
-    fig, ax = plt.subplots(figsize=figsize)
+    with plt.rc_context(_dark_rc(dark)):
+        fig, ax = plt.subplots(figsize=figsize)
 
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
     ax.spines["bottom"].set_visible(False)
     ax.spines["left"].set_visible(False)
 
-    fig.suptitle(title, y=0.94, fontweight="bold", fontsize=14, color="black")
+    fig.suptitle(title, y=0.94, fontweight="bold", fontsize=14, color=_ink(dark))
 
     if subtitle:
         ax.set_title(
@@ -656,7 +770,7 @@ def plot_rolling_beta(
         hlcolor = "black" if grayscale else hlcolor
         ax.axhline(beta.mean(), ls="--", lw=1.5, color=hlcolor, zorder=2)
 
-    ax.axhline(0, ls="--", lw=1, color="#000000", zorder=2)
+    ax.axhline(0, ls="--", lw=1, color=_ink(dark), zorder=2)
 
     fig.autofmt_xdate()
 
@@ -664,7 +778,7 @@ def plot_rolling_beta(
     ax.fmt_xdata = _mdates.DateFormatter("%Y-%m-%d")
 
     if ylabel:
-        ax.set_ylabel("Beta", fontweight="bold", fontsize=12, color="black")
+        ax.set_ylabel("Beta", fontweight="bold", fontsize=12, color=_ink(dark))
         ax.yaxis.set_label_coords(-0.1, 0.5)
 
     ax.legend(fontsize=11)
