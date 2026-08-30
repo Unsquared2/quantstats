@@ -44,6 +44,25 @@ def _get_trading_periods(periods_per_year: int = 252) -> tuple[int, int]:
     return periods_per_year, half_year
 
 
+_CALENDAR_DAYS_PER_YEAR = 365
+"""`stats.cagr`'s divisor is real elapsed calendar days, not a sampling rate --
+`years = (index[-1] - index[0]).days / periods` only works out to the caller's
+own `periods_per_year` by coincidence, for data sampled once a day. Passing
+`win_year` there for an hourly (or any non-daily) series raises an already
+-large compounded return to a wildly wrong power. This is a calendar
+constant, unrelated to how often the return series is itself sampled."""
+
+
+def _rows_per_day(periods_per_year: int) -> int:
+    """How many rows of `weights` make up one day, at this sampling rate.
+
+    `plot_rolling_exposure`'s `period` is a row count, not a day count: for
+    daily data one row is one day, but for anything sampled more often
+    (hourly, say) "1 Day" is however many rows actually make up a day.
+    """
+    return max(1, round(periods_per_year / _CALENDAR_DAYS_PER_YEAR))
+
+
 def _match_dates(
     returns: pd.DataFrame | pd.Series, benchmark: pd.Series
 ) -> tuple[pd.DataFrame | pd.Series, pd.Series]:
@@ -302,6 +321,8 @@ def html(
         tpl = tpl.replace("{{stacked_turnover_weekly}}", _embed_figure(figfile, figfmt))
 
     if weights is not None:
+        rows_per_day = _rows_per_day(periods_per_year)
+
         figfile = _utils._file_stream()
         plot_rolling_exposure(
             weights=weights,
@@ -312,7 +333,7 @@ def html(
             ylabel=False,
             net_or_gross="net",
             reference_line=0.0,
-            period=1,
+            period=rows_per_day,
             period_label="1 Day",
             dark=background_dark,
         )
@@ -328,7 +349,7 @@ def html(
             ylabel=False,
             net_or_gross="gross",
             reference_line=0.0,
-            period=1,
+            period=rows_per_day,
             period_label="1 Day",
             components=components,
             dark=background_dark,
@@ -551,7 +572,9 @@ def _calculate_metrics(
     else:
         metrics["Total Return %"] = (df.sum() * pct).map("{:,.2f}".format)
 
-    metrics["CAGR﹪%"] = round(_stats.cagr(df, rf, compounded, win_year) * pct, 2)
+    metrics["CAGR﹪%"] = round(
+        _stats.cagr(df, rf, compounded, _CALENDAR_DAYS_PER_YEAR) * pct, 2
+    )
 
     metrics["~~~~~~~~~~~~~~"] = blank
 
@@ -685,20 +708,25 @@ def _calculate_metrics(
 
     d = today - pd.DateOffset(months=35)
     metrics["3Y (ann.) %"] = round(
-        _stats.cagr(df[df.index >= d], 0.0, compounded) * pct, 2
+        _stats.cagr(df[df.index >= d], 0.0, compounded, _CALENDAR_DAYS_PER_YEAR) * pct,
+        2,
     )
 
     d = today - pd.DateOffset(months=59)
     metrics["5Y (ann.) %"] = round(
-        _stats.cagr(df[df.index >= d], 0.0, compounded) * pct, 2
+        _stats.cagr(df[df.index >= d], 0.0, compounded, _CALENDAR_DAYS_PER_YEAR) * pct,
+        2,
     )
 
     d = today - pd.DateOffset(years=10)
     metrics["10Y (ann.) %"] = round(
-        _stats.cagr(df[df.index >= d], 0.0, compounded) * pct, 2
+        _stats.cagr(df[df.index >= d], 0.0, compounded, _CALENDAR_DAYS_PER_YEAR) * pct,
+        2,
     )
 
-    metrics["All-time (ann.) %"] = round(_stats.cagr(df, 0.0, compounded) * pct, 2)
+    metrics["All-time (ann.) %"] = round(
+        _stats.cagr(df, 0.0, compounded, _CALENDAR_DAYS_PER_YEAR) * pct, 2
+    )
 
     # best/worst
     if mode.lower() == "full":
