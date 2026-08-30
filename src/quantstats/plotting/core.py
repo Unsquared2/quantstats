@@ -568,16 +568,21 @@ def plot_rolling_stats(
         benchmark = _weekly(benchmark)
     df = pd.DataFrame(index=returns.index, data={returns_label: returns})
 
+    # A derived series (a rolling exposure, a liquidity tilt) usually has no
+    # `.name` of its own; `returns_label` is what the caller meant this line
+    # to be called, so it is the fallback rather than an unlabelled legend
+    # entry.
+    label = returns.name or returns_label
     if isinstance(benchmark, pd.Series):
         df["Benchmark"] = benchmark[benchmark.index.isin(returns.index)]
         df = df[["Benchmark", returns_label]].dropna()
-        ax.plot(df[returns_label].dropna(), lw=lw, label=returns.name, color=colors[1])
+        ax.plot(df[returns_label].dropna(), lw=lw, label=label, color=colors[1])
         ax.plot(
             df["Benchmark"], lw=lw, label=benchmark.name, color=colors[0], alpha=0.8
         )
     else:
         df = df[[returns_label]].dropna()
-        ax.plot(df[returns_label].dropna(), lw=lw, label=returns.name, color=colors[1])
+        ax.plot(df[returns_label].dropna(), lw=lw, label=label, color=colors[1])
 
     # rotate and align the tick labels so they look better
     fig.autofmt_xdate()
