@@ -34,6 +34,10 @@ from .plotting.wrappers import (
 with contextlib.suppress(ImportError):
     pass
 
+_PANDAS_COW_IS_TOGGLEABLE = int(pd.__version__.split(".")[0]) < 3
+"""Copy-on-write can no longer be disabled from pandas 3.0 on -- it is always
+on -- and the option itself warns-as-deprecated just for being touched."""
+
 
 def _get_trading_periods(periods_per_year: int = 252) -> tuple[int, int]:
     half_year = _ceil(periods_per_year / 2)
@@ -85,7 +89,8 @@ def html(
     (same zero-not-NaN convention). Given, the turnover chart is drawn --
     it is otherwise skipped -- and gross exposure stacks by sub-strategy
     instead of drawing the combined book's single line."""
-    pd.options.mode.copy_on_write = False
+    if _PANDAS_COW_IS_TOGGLEABLE:
+        pd.options.mode.copy_on_write = False
     if match_dates:
         returns = returns.dropna()
 
@@ -452,7 +457,8 @@ def html(
 
     tpl = _regex.sub(r"\{\{(.*?)\}\}", "", tpl)
     tpl = tpl.replace("white-space:pre;", "")
-    pd.options.mode.copy_on_write = True
+    if _PANDAS_COW_IS_TOGGLEABLE:
+        pd.options.mode.copy_on_write = True
     return HTMLReport(tpl)
 
 
@@ -478,22 +484,24 @@ def _calculate_metrics(
     benchmark_colname = kwargs.get("benchmark_title", "Benchmark")
     strategy_colname = kwargs.get("strategy_title", "Strategy")
 
-    benchmark_colname = (
-        f"Benchmark {f'({benchmark.name.upper()})' if benchmark.name else ''}"
-    )
+    if benchmark is not None:
+        benchmark_colname = (
+            f"Benchmark {f'({benchmark.name.upper()})' if benchmark.name else ''}"
+        )
 
     blank = [""]
 
     df = pd.DataFrame({"returns": returns})
 
-    if match_dates is True:
+    if match_dates is True and benchmark is not None:
         returns, benchmark = _match_dates(returns, benchmark)
-    df["benchmark"] = benchmark
+    if benchmark is not None:
+        df["benchmark"] = benchmark
     if isinstance(returns, pd.Series):
-        blank = ["", ""]
+        blank = ["", ""] if benchmark is not None else [""]
         df["returns"] = returns
     elif isinstance(returns, pd.DataFrame):
-        blank = [""] * len(returns.columns) + [""]
+        blank = [""] * len(returns.columns) + ([""] if benchmark is not None else [])
         for i, strategy_col in enumerate(returns.columns):
             df["returns_" + str(i + 1)] = returns[strategy_col]
 
@@ -524,32 +532,33 @@ def _calculate_metrics(
     metrics["Start Period"] = pd.Series(s_start)
     metrics["End Period"] = pd.Series(s_end)
 
+    def _with_neutral(value: float, neutral: float) -> list[float]:
+        # The second slot is the benchmark column's row -- there to carry the
+        # neutral answer, since a return series has nothing of its own to put
+        # there. Omitted when there is no benchmark column to fill.
+        return [value, neutral] if benchmark is not None else [value]
+
     if weights is not None:
-        metrics["Average Net Exposure %"] = [
-            round(weights.sum(axis="columns").mean() * 100, 2),
-            100,
-        ]
-        metrics["Average Gross Exposure %"] = [
-            round(weights.abs().sum(axis="columns").mean() * 100, 2),
-            100,
-        ]
-        metrics["Daily Turnover %"] = [
-            round(weights.diff(1).abs().sum(axis=1).mean() * 100, 2),
-            0.0,
-        ]
+        metrics["Average Net Exposure %"] = _with_neutral(
+            round(weights.sum(axis="columns").mean() * 100, 2), 100
+        )
+        metrics["Average Gross Exposure %"] = _with_neutral(
+            round(weights.abs().sum(axis="columns").mean() * 100, 2), 100
+        )
+        metrics["Daily Turnover %"] = _with_neutral(
+            round(weights.diff(1).abs().sum(axis=1).mean() * 100, 2), 0.0
+        )
 
     if weights is not None and liquidity is not None:
         # 50 and 20 are the liquidity-neutral answers, so the benchmark column
         # carries them rather than the benchmark's own -- a return series has
         # no cross-section to rank.
-        metrics["Weighted Liquidity Pctile %"] = [
-            round(_stats.liquidity_tilt(weights, liquidity).mean() * 100, 2),
-            50.0,
-        ]
-        metrics["Gross in Least-Liquid 5th %"] = [
-            round(_stats.illiquid_quintile_share(weights, liquidity) * 100, 2),
-            20.0,
-        ]
+        metrics["Weighted Liquidity Pctile %"] = _with_neutral(
+            round(_stats.liquidity_tilt(weights, liquidity).mean() * 100, 2), 50.0
+        )
+        metrics["Gross in Least-Liquid 5th %"] = _with_neutral(
+            round(_stats.illiquid_quintile_share(weights, liquidity) * 100, 2), 20.0
+        )
 
     metrics["~"] = blank
 
