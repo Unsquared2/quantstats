@@ -44,21 +44,17 @@ def test_no_template_placeholder_survives(tmp_path: Path):
 
 
 def test_turnover_is_skipped_without_components(tmp_path: Path):
-    """Optional: absent `components`, the two turnover charts render nothing."""
+    """Optional: absent `components`, the turnover chart renders nothing."""
     page = Path(sample_report(str(tmp_path / "tearsheet.html"))).read_text()
     assert '<div id="stacked_turnover_weekly"></div>' in page
-    assert '<div id="stacked_turnover_quarterly"></div>' in page
 
 
-def test_components_add_the_stacked_turnover_charts(tmp_path: Path):
+def test_components_add_the_stacked_turnover_chart(tmp_path: Path):
     page = Path(
         sample_report(str(tmp_path / "tearsheet.html"), with_components=True)
     ).read_text()
     rendered = set(re.findall(r'<div id="([^"]+)"><\?xml', page))
-    assert rendered == CHARTS | {
-        "stacked_turnover_weekly",
-        "stacked_turnover_quarterly",
-    }
+    assert rendered == CHARTS | {"stacked_turnover_weekly"}
     assert "{{" not in page
     # Each sub-strategy's own name reaches the legend of a stacked chart.
     assert "alpha" in page

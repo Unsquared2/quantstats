@@ -292,7 +292,6 @@ def html(
         figfile = _utils._file_stream()
         plot_turnover(
             components=components,
-            smooth="W",
             grayscale=grayscale,
             figsize=(8, 4),
             subtitle=False,
@@ -301,21 +300,6 @@ def html(
             dark=background_dark,
         )
         tpl = tpl.replace("{{stacked_turnover_weekly}}", _embed_figure(figfile, figfmt))
-
-        figfile = _utils._file_stream()
-        plot_turnover(
-            components=components,
-            smooth="3M",
-            grayscale=grayscale,
-            figsize=(8, 4),
-            subtitle=False,
-            savefig={"fname": figfile, "format": figfmt},
-            ylabel=False,
-            dark=background_dark,
-        )
-        tpl = tpl.replace(
-            "{{stacked_turnover_quarterly}}", _embed_figure(figfile, figfmt)
-        )
 
     if weights is not None:
         figfile = _utils._file_stream()

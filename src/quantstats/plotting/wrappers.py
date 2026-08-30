@@ -287,7 +287,6 @@ def plot_rolling_exposure(
 
 def plot_turnover(
     components: dict[str, pd.DataFrame],
-    smooth: Literal["W", "3M"] = "W",
     grayscale: bool = False,
     figsize: tuple[int, int] = (10, 4),
     ylabel: str = "Turnover",
@@ -297,30 +296,17 @@ def plot_turnover(
 ) -> Figure:
     """Stacked turnover by sub-strategy: each area is that book's own share.
 
-    `smooth="W"` resamples daily turnover to a weekly mean; `smooth="3M"`
-    takes a trailing 90-day mean instead, still drawn at one point a week --
-    raw daily turnover is too jagged to read once several areas are stacked.
+    Resamples daily turnover to a weekly mean -- raw daily turnover is too
+    jagged to read once several areas are stacked.
     """
-    if smooth == "W":
-        title = "Turnover (Weekly Smoothed)"
-        stacked = {
-            name: _component_turnover(frame).resample("W").mean()
-            for name, frame in components.items()
-        }
-    else:
-        title = "Turnover (3-Month Smoothed)"
-        stacked = {
-            name: _component_turnover(frame)
-            .rolling("90D", min_periods=1)
-            .mean()
-            .resample("W")
-            .last()
-            for name, frame in components.items()
-        }
+    stacked = {
+        name: _component_turnover(frame).resample("W").mean()
+        for name, frame in components.items()
+    }
 
     return _core.plot_stacked(
         stacked,
-        title=title,
+        title="Turnover (Weekly Smoothed)",
         ylabel=ylabel,
         grayscale=grayscale,
         figsize=figsize,
