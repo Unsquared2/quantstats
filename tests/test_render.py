@@ -14,7 +14,11 @@ import matplotlib
 
 matplotlib.use("Agg")
 
+import pandas as pd
+import pytest
 from conftest import sample_report
+
+from quantstats.reports import html
 
 CHARTS = {
     "cumulative_returns",
@@ -99,6 +103,44 @@ def test_the_report_carries_the_exposure_and_liquidity_rows(tmp_path: Path):
         "Gross in Least-Liquid 5th",
     ):
         assert row in page
+
+
+def test_cagr_is_calendar_based_not_sampling_rate_based(tmp_path: Path):
+    """CAGR must not blow up for a report scored on hourly returns.
+
+    `periods_per_year=8760` is *sampling rate* -- how many rows make a
+    year -- correct for Sharpe/volatility, which scale with sqrt(periods).
+    CAGR's own year-length is real elapsed calendar days regardless: passing
+    the sampling rate there raises an already-compounded return to a wildly
+    wrong power. A constant hourly rate makes both the true answer and the
+    bug's answer computable by hand, so this pins the right one.
+    """
+    hours = 24 * 400  # a bit over a year of hourly bars
+    rate = 0.0002  # a mild, realistic constant hourly return
+    index = pd.date_range("2024-01-01", periods=hours, freq="h")
+    returns = pd.Series(rate, index=index, name="strategy")
+
+    report = html(
+        returns=returns,
+        benchmark=None,
+        weights=None,
+        title="cagr sanity",
+        periods_per_year=24 * 365,
+    ).source_code
+
+    match = re.search(r"<tr><td>CAGR﹪</td><td>(-?[\d,]+\.\d+)%</td></tr>", report)
+    assert match, "CAGR row not found in the rendered metrics table"
+    rendered_cagr = float(match.group(1).replace(",", "")) / 100
+
+    total_return = (1 + rate) ** hours - 1
+    calendar_days = (index[-1] - index[0]).days
+    expected_cagr = abs(total_return + 1.0) ** (365 / calendar_days) - 1
+
+    assert rendered_cagr == pytest.approx(expected_cagr, rel=1e-3)
+    # The bug's answer (raising to 8760/calendar_days instead of 365/it) is
+    # off by many orders of magnitude -- a loose sanity bound catches it even
+    # if the exact formula above ever drifts.
+    assert abs(rendered_cagr) < 100  # under 10,000%
 
 
 def test_text_is_not_embedded_as_vector_outlines(tmp_path: Path):
